@@ -1,0 +1,83 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: EC2 Micro EKS Hub (workstation)
+
+Parameters:
+  InstanceTypeParameter:
+    Type: String
+    Default: t2.micro
+    AllowedValues:
+      - t2.micro
+      - m1.small
+      - m1.large 
+  VpcId:
+    Type: String
+    Default: vpc-0e4064617644c2272                                # eks_base_vpc.yaml 생성 후 생성된 VPC ID
+
+  SubnetId:
+    Type: String
+    Default: subnet-095d1461e943c4d00                             #  eks_base_vpc.yaml 생성 후 생성된 WorkerSubnet1 subnet ID
+
+  VolumeSizeParameter:
+    Type: Number
+    Default: 8 
+
+  KeyNameParameter:
+    Type: String
+    Default: tam                                                  # AWS 콘솔에서 생성한 Key Name  
+
+Resources:
+  SSHSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId: !Ref VpcId
+      GroupDescription: Enable SSH access via port 22
+      SecurityGroupIngress:
+      - CidrIp:   0.0.0.0/32                                      # local PC IP
+        FromPort: 22
+        IpProtocol: tcp
+        ToPort: 22
+  controlXface:
+    Type: AWS::EC2::NetworkInterface
+    Properties:
+      SubnetId: !Ref SubnetId                                      
+      Description: Interface for controlling traffic such as SSH
+      GroupSet: 
+      - !Ref SSHSecurityGroup
+      SourceDestCheck: true
+      Tags:
+        -
+          Key: Network
+          Value: Control      
+  EKSWorkstation: 
+    Type: AWS::EC2::Instance
+    Properties: 
+      ImageId: "ami-0eb14fe5735c13eb5"                              # Amazon Linux 2 AMI - Kernel 5.10 // Free Tier
+      InstanceType: !Ref InstanceTypeParameter   
+      KeyName: !Ref KeyNameParameter                                 
+      NetworkInterfaces:
+        -
+          NetworkInterfaceId: !Ref controlXface
+          DeviceIndex: 0
+      Tags:
+        -
+          Key: Name
+          Value: EKS-Workstation
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          amazon-linux-extras enable corretto8
+          yum install ec2-net-utils -y
+          yum install git -y
+          yum install java-1.8.0-amazon-corretto-devel -y
+          curl -o kubectl https://amazon-eks.s3-us-west-2.amazonaws.com/1.21.2/2021-07-05/bin/linux/amd64/kubectl
+          chmod +x ./kubectl
+          cp ./kubectl /usr/local/bin/kubectl
+          curl --silent --location "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp
+          mv /tmp/eksctl /usr/local/bin
+
+Outputs:
+  EC2:
+    Value: !Ref EKSWorkstation
+
+  SSHSecurityGroup:
+    Value: !Ref SSHSecurityGroup
