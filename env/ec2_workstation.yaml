@@ -11,11 +11,11 @@ Parameters:
       - m1.large 
   VpcId:
     Type: String
-    Default: vpc-0e4064617644c2272                                # eks_base_vpc.yaml 생성 후 생성된 VPC ID
+    Default: vpc-0e4064617644c2272                                # eks_base_vpc.yaml 생성 후 생성된 VPC ID 로 변경하세요.
 
   SubnetId:
     Type: String
-    Default: subnet-095d1461e943c4d00                             #  eks_base_vpc.yaml 생성 후 생성된 WorkerSubnet1 subnet ID
+    Default: subnet-095d1461e943c4d00                             #  eks_base_vpc.yaml 생성 후 생성된 WorkerSubnet1 subnet ID 로 변경하세요.
 
   VolumeSizeParameter:
     Type: Number
@@ -23,7 +23,7 @@ Parameters:
 
   KeyNameParameter:
     Type: String
-    Default: tam                                                  # AWS 콘솔에서 생성한 Key Name  
+    Default: tam                                                  # AWS 콘솔에서 생성한 Key Name 으로 변경하세요.
 
 Resources:
   SSHSecurityGroup:
@@ -32,7 +32,7 @@ Resources:
       VpcId: !Ref VpcId
       GroupDescription: Enable SSH access via port 22
       SecurityGroupIngress:
-      - CidrIp:   0.0.0.0/32                                      # local PC IP
+      - CidrIp:   0.0.0.0/32                                      # local PC IP 로 변경하세요.
         FromPort: 22
         IpProtocol: tcp
         ToPort: 22
@@ -69,6 +69,7 @@ Resources:
           yum install ec2-net-utils -y
           yum install git -y
           yum install java-1.8.0-amazon-corretto-devel -y
+          yum install docker -y
           curl -o kubectl https://amazon-eks.s3-us-west-2.amazonaws.com/1.21.2/2021-07-05/bin/linux/amd64/kubectl
           chmod +x ./kubectl
           cp ./kubectl /usr/local/bin/kubectl
@@ -81,3 +82,9 @@ Outputs:
 
   SSHSecurityGroup:
     Value: !Ref SSHSecurityGroup
+
+  PublicIp:
+    Description: Workstation public ID  
+    Value: !GetAtt EKSWorkstation.PublicIp
+    Export:
+      Name: !Sub "${AWS::StackName}-PublicIp"

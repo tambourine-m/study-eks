@@ -32,19 +32,19 @@ Parameters:
 
   WorkerSubnet1Block:
     Type: String
-    Default: 10.90.0.0/24
+    Default: 10.90.10.0/24
 
   WorkerSubnet2Block:
     Type: String
-    Default: 10.90.1.0/24
+    Default: 10.90.20.0/24
 
   WorkerSubnet3Block:
     Type: String
-    Default: 10.90.2.0/24
+    Default: 10.90.30.0/24
   
   WorkerSubnet4Block:
     Type: String
-    Default: 10.90.3.0/24  
+    Default: 10.90.40.0/24  
 
 Resources:
   EKSWorkspaceVPC:
