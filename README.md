@@ -1,5 +1,7 @@
 # EKS-WORKSHOP
 
+[TOC]
+
 AWS 를 이용한 EKS workshop 입니다.
 
 - AWS CloudFormation 으로 VPC, EKS Workstation 생성
@@ -407,7 +409,7 @@ ENTRYPOINT ["java", \
 
 ### 5. EKS 에 Applicatoin 배포
 
-### 6. 
+### 6.  ...
 
 
 
