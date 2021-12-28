@@ -437,7 +437,51 @@ Receiving objects: 100% (69/69), 1.03 MiB | 461.00 KiB/s, done.
 Resolving deltas: 100% (7/7), done.
 ```
 
+소스를 컴파일 합니다.
 
+```bash
+$cd study-eks
+$mvn -f pom.xml clean package -Dmaven.test.skip=true
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] -----------------------< company.diem:demo-app >------------------------
+[INFO] Building demo-app 0.0.1-SNAPSHOT
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- maven-clean-plugin:3.1.0:clean (default-clean) @ demo-app ---
+[INFO] Deleting /home/ec2-user/study-eks/demo-app/target
+[INFO] 
+[INFO] --- maven-resources-plugin:3.2.0:resources (default-resources) @ demo-app ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] Using 'UTF-8' encoding to copy filtered properties files.
+[INFO] Copying 1 resource
+[INFO] Copying 1 resource
+[INFO] 
+[INFO] --- maven-compiler-plugin:3.8.1:compile (default-compile) @ demo-app ---
+[INFO] Changes detected - recompiling the module!
+[INFO] Compiling 6 source files to /home/ec2-user/study-eks/demo-app/target/classes
+[INFO] 
+[INFO] --- maven-resources-plugin:3.2.0:testResources (default-testResources) @ demo-app ---
+[INFO] Not copying test resources
+[INFO] 
+[INFO] --- maven-compiler-plugin:3.8.1:testCompile (default-testCompile) @ demo-app ---
+[INFO] Not compiling test sources
+[INFO] 
+[INFO] --- maven-surefire-plugin:2.22.2:test (default-test) @ demo-app ---
+[INFO] Tests are skipped.
+[INFO] 
+[INFO] --- maven-jar-plugin:3.2.0:jar (default-jar) @ demo-app ---
+[INFO] Building jar: /home/ec2-user/study-eks/demo-app/target/demo-app-0.0.1-SNAPSHOT.jar
+[INFO] 
+[INFO] --- spring-boot-maven-plugin:2.6.2:repackage (repackage) @ demo-app ---
+[INFO] Replacing main artifact with repackaged archive
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  6.671 s
+[INFO] Finished at: 2021-12-28T07:12:21Z
+[INFO] ------------------------------------------------------------------------
+```
 
 
 
@@ -449,4 +493,4 @@ Resolving deltas: 100% (7/7), done.
 
 CloudFormation 에서 생성한 스택을 역순으로 삭제 합니다.
 
-![stack-delete](./img/aws-cf05.png)
+![stack-delete](./img/aws-cf06.png)
