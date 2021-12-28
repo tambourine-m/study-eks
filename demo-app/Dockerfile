@@ -4,7 +4,7 @@ LABEL maintainer="tambourine-m"
 ENV LANG en_US.UTF8
 
 VOLUME /tmp
-ARG JAR_FILE
+ARG JAR_FILE=target/*.jar
 COPY ${JAR_FILE} demo-app.jar
 
 ENTRYPOINT ["java", \

@@ -285,9 +285,12 @@ Resources:
           yum install ec2-net-utils -y
           yum install git -y
           yum install java-1.8.0-amazon-corretto-devel -y
+          curl --silent --location "https://dlcdn.apache.org/maven/maven-3/3.8.4/binaries/apache-maven-3.8.4-bin.tar.gz" | tar zx -C /tmp
+          mv /tmp/apache-maven-3.8.4 /usr/share
+          echo "export PATH=/usr/share/apache-maven-3.8.4/bin:$PATH" >> /home/ec2-user/.bash_profile
           curl -o kubectl https://amazon-eks.s3-us-west-2.amazonaws.com/1.21.2/2021-07-05/bin/linux/amd64/kubectl
           chmod +x ./kubectl
-          cp ./kubectl /usr/local/bin/kubectl
+          mv ./kubectl /usr/local/bin/kubectl
           curl --silent --location "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp
           mv /tmp/eksctl /usr/local/bin
 
@@ -317,6 +320,18 @@ amazon linux 2, SecurityGroup, 그리고 jdk 8, git, kubectl, eksctl 를 설치�
 
 ![EC2](./img/aws-ec201.png)
 
+aws cli 설정합니다. IAM 에서 생성한 사용자 Access Key, Secret Access Key로 셋팅 합니다.
+
+```bash
+$aws configure
+AWS Access Key ID [None]:
+AWS Secret Access Key [None]: 
+Default region name [None]: 
+Default output format [None]: 
+```
+
+
+
 ### 3. EKS Cluster 생성
 
 eksctl, kubectl 명령, Application Build 등은 eks-workstation 에서 수행할 예정이다. 
@@ -343,9 +358,9 @@ CloudFormation 에서도 위 그림처럼 생성과정을 확인 할 수 있습�
 
 ```bash
 $kubectl get nodes
-NAME                                               STATUS   ROLES    AGE    VERSION
-ip-192-168-0-220.ap-northeast-2.compute.internal   Ready    <none>   5m     v1.21.5-eks-bc4871b
-ip-192-168-2-223.ap-northeast-2.compute.internal   Ready    <none>   5m6s   v1.21.5-eks-bc4871b
+NAME                                              STATUS   ROLES    AGE     VERSION
+ip-10-90-30-241.ap-northeast-2.compute.internal   Ready    <none>   3m7s    v1.21.5-eks-bc4871b
+ip-10-90-30-52.ap-northeast-2.compute.internal    Ready    <none>   3m43s   v1.21.5-eks-bc4871b
 ```
 
 
@@ -408,6 +423,23 @@ ENTRYPOINT ["java", \
 
 
 ### 5. EKS 에 Applicatoin 배포
+
+먼저 소스를 eks-workstation 에 다운로드 받는다. 
+
+```bash
+$git clone https://github.com/tambourine-m/study-eks.git
+Cloning into 'study-eks'...
+remote: Enumerating objects: 69, done.
+remote: Counting objects: 100% (69/69), done.
+remote: Compressing objects: 100% (53/53), done.
+remote: Total 69 (delta 7), reused 69 (delta 7), pack-reused 0
+Receiving objects: 100% (69/69), 1.03 MiB | 461.00 KiB/s, done.
+Resolving deltas: 100% (7/7), done.
+```
+
+
+
+
 
 ### 6.  ...
 
