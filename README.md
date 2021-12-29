@@ -285,6 +285,10 @@ Resources:
           yum install ec2-net-utils -y
           yum install git -y
           yum install java-1.8.0-amazon-corretto-devel -y
+          yum install docker -y
+          curl -o /tmp/get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
+          chmod 700 /tmp/get_helm.sh
+          /tmp/get_helm.sh
           curl --silent --location "https://dlcdn.apache.org/maven/maven-3/3.8.4/binaries/apache-maven-3.8.4-bin.tar.gz" | tar zx -C /tmp
           mv /tmp/apache-maven-3.8.4 /usr/share
           echo "export PATH=/usr/share/apache-maven-3.8.4/bin:$PATH" >> /home/ec2-user/.bash_profile
@@ -403,7 +407,7 @@ public class DemoAppController {
 Dockerfile
 
 ```dockerfile
-FROM amazonecorretto:8
+FROM amazoncorretto:8
 LABEL maintainer="tambourine-m"
 
 ENV LANG en_US.UTF8
@@ -422,7 +426,15 @@ ENTRYPOINT ["java", \
 
 
 
-### 5. EKS 에 Applicatoin 배포
+### 5. Helm 을 이용하여 Applicatoin 배포
+
+helm 설치 eks-workstation 생성시 자동으로 설치되게 되어 있습니다.
+
+```bash
+$ curl -o /tmp/get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
+$ chmod 700 /tmp/get_helm.sh
+$ /tmp/get_helm.sh
+```
 
 먼저 소스를 eks-workstation 에 다운로드 받는다. 
 
@@ -483,13 +495,225 @@ $mvn -f pom.xml clean package -Dmaven.test.skip=true
 [INFO] ------------------------------------------------------------------------
 ```
 
+컨테이너 이미지 저장을 위해 AWS ECR 생성을 합니다. 
+AWS Console > 컨테이너 > Elastic Container Registry 
+Pravate Registry URI : dkr.ecr.ap-northeast-2.amazonaws.com/demo-app 
 
+또는 aws cli 로 ECR 생성 합니다. 
 
-### 6.  ...
+```bash
+$ aws ecr create-repository --repository-name demo-app --image-scanning-configuration scanOnPush=true --region ap-northeast-2
+```
+
+ecr login 
+
+```bash
+$ aws ecr get-login-password --region ap-northeast-2 --profile eks_admin | docker login --username AWS --password-stdin dkr.ecr.ap-northeast-2.amazonaws.com/demo-app
+```
+
+docker build 를 하고 이미지를 ecr 에 push 합니다. 
+
+```bash
+$ docker build -t demo-app:0.0.1 .
+$ docker images
+REPOSITORY       TAG       IMAGE ID       CREATED         SIZE
+demo-app         0.0.1     f047c8311caa   5 seconds ago   365MB
+amazoncorretto   8         78e204a7ac8b   2 weeks ago     347MB
+$ docker tag demo-app:0.0.1 dkr.ecr.ap-northeast-2.amazonaws.com/demo-app:0.0.1
+
+$ docker push dkr.ecr.ap-northeast-2.amazonaws.com/demo-app:0.0.1
+The push refers to repository [dkr.ecr.ap-northeast-2.amazonaws.com/demo-app]
+a1c73bb0ba18: Pushed 
+49fe839ab5bc: Pushed 
+d4dfab969171: Pushed 
+0.0.1: digest: sha256:7ab0696d63f6f56a486cf1fa1145222933fc72994b8329f30f8d9790bc95dbf2 size: 953
+```
+
+helm Chart 탬플릿 deploy 파일
+
+demo-app-deploy.yaml
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo-app
+  namespace: eks-work
+spec:
+  replicas: {{ .Values.replicas }}  
+  selector: 
+    matchLabels:
+      app: demo-app
+  template:
+    metadata:
+      annotations:
+        date: "{{ now }}"
+      labels:
+        app: demo-app
+        version: "{{ .Values.version }}"
+    spec:
+      containers:
+      - name: demo-app
+        image: {{ .Values.ecrURL }}/demo-app:{{ .Values.version }}
+        imagePullPolicy: Always
+        env:
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        ports:
+        - containerPort: 8080
+          name: app-port
+          protocol: TCP
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 240
+          periodSeconds: 10
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 3
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 3
+        lifecycle:
+          preStop:
+            exec:
+              command: ["/bin/sh", "-c", "sleep 2"]          
+      terminationGracePeriodSeconds: 300
+      tolerations:
+      - effect: NoExecute
+        key: node.kubernetes.io/not-ready
+        operator: Exists
+        tolerationSeconds: 300
+      - effect: NoExecute
+        key: node.kubernetes.io/unreachable
+        operator: Exists
+        tolerationSeconds: 300
+```
+
+helm Chart 탬플릿 Service
+
+demo-app-service.yaml
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: demo-app-svc
+  namespace: eks-work
+spec:
+  type: LoadBalancer
+  ports:
+  - name: was 
+    port: 8080
+    protocol: TCP
+    targetPort: app-port 
+  selector:
+    app: demo-app
+    version: "{{ .Values.version }}"
+```
+
+helm package app
+
+```bash
+$ helm package --version=1.0 --app-version=0.0.1 --destination /home/ec2-user/study-eks/helm /home/ec2-user/study-eks/helm/demo-app
+
+Successfully packaged chart and saved it to: /home/ec2-user/study-eks/helm/demo-app-1.0.tgz
+```
+
+application 배포 ecrURL 에 자신의 URL 로 변경하여 실행 합니다.
+
+```bash
+$ helm install --name-template demo-app --set region=kr,flag=a,ecrURL=dkr.ecr.ap-northeast-2.amazonaws.com,version=0.0.1,replicas=2 /home/ec2-user/study-eks/helm/demo-app-1.0.tgz
+
+NAME: demo-app
+LAST DEPLOYED: Wed Dec 29 07:49:22 2021
+NAMESPACE: eks-work
+STATUS: deployed
+REVISION: 1
+TEST SUITE: None
+```
+
+helm package service
+
+```bash
+$ helm package --version=1.0 --app-version=0.0.1 --destination /home/ec2-user/study-eks/helm /home/ec2-user/study-eks/helm/demo-svc
+
+Successfully packaged chart and saved it to: /home/ec2-user/study-eks/helm/demo-svc-1.0.tgz
+```
+
+k8s 에 service 등록 type 은 LoadBalancer 로 했습니다.
+
+```bash
+$ helm install --name-template demo-svc --set region=kr,version=0.0.1,flag=a /home/ec2-user/study-eks/helm/demo-svc-1.0.tgz
+
+NAME: demo-svc
+LAST DEPLOYED: Wed Dec 29 07:50:53 2021
+NAMESPACE: eks-work
+STATUS: deployed
+REVISION: 1
+TEST SUITE: None
+```
+
+kubectl 명령으로 배포된 pod 와 service 를 확인 합니다. 
+
+```bash
+$ kubectl get pod
+NAME                        READY   STATUS    RESTARTS   AGE
+demo-app-568bd4d99f-2g28h   1/1     Running   0          2m41s
+demo-app-568bd4d99f-z8zwj   1/1     Running   0          2m41s
+$ kubectl get svc
+NAME           TYPE           CLUSTER-IP       EXTERNAL-IP                                                                    PORT(S)          AGE
+demo-app-svc   LoadBalancer   172.20.137.118   adf01da4abf944fa9b493fa497664a2e-1776881545.ap-northeast-2.elb.amazonaws.com   8080:30261/TCP   76s
+```
+
+AWS Console 에서 EC2 > load Balance 에서 생성된 LB 를 확인 합니다. 
+
+![LB](./img/aws-lb00.png)
+
+외부에서 API 호출이 잘 되는지 확인 합니다. 
+
+```
+$ curl -s http://adf01da4abf944fa9b493fa497664a2e-1776881545.ap-northeast-2.elb.amazonaws.com:8080/
+{"name":"DemoAPP","distributor":"tambourine-man"}
+```
 
 
 
 ### 실습 삭제
+
+EKS, ECR, EC2, VPC 등 실습에 사용한 AWS Cloud 자원들을 모두 삭제 합니다. (유료이므로...)
+
+eks-workstation 에서 배포된 pod 와 service 를 삭제 합니다. (service 삭제시 LB 는 자동 삭제 됩니다.)
+
+```bash
+$ helm uninstall demo-svc
+release "demo-svc" uninstalled
+$ helm uninstall demo-app
+release "demo-app" uninstalled
+```
+
+eks-workstation 에서 ecr 의 이미지를 삭제 합니다. 
+
+```bash
+$ aws ecr batch-delete-image --repository-name demo-app --image-ids imageTag=0.0.1 --region ap-northeast-2
+```
+
+repository 도 삭제 합니다.
+
+```bash
+$ aws ecr delete-repository --repository-name demo-app --force --region ap-northeast-2
+```
+
+
 
 CloudFormation 에서 생성한 스택을 역순으로 삭제 합니다.
 

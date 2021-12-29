@@ -1,0 +1,4 @@
+apiVersion: v1
+description: A Helm chart for demo-svc
+name: demo-svc
+version: 1.0

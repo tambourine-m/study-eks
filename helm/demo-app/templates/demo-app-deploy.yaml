@@ -1,0 +1,63 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo-app
+  namespace: eks-work
+spec:
+  replicas: {{ .Values.replicas }}  
+  selector: 
+    matchLabels:
+      app: demo-app
+  template:
+    metadata:
+      annotations:
+        date: "{{ now }}"
+      labels:
+        app: demo-app
+        version: "{{ .Values.version }}"
+    spec:
+      containers:
+      - name: demo-app
+        image: {{ .Values.ecrURL }}/demo-app:{{ .Values.version }}
+        imagePullPolicy: Always
+        env:
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        ports:
+        - containerPort: 8080
+          name: app-port
+          protocol: TCP
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 240
+          periodSeconds: 10
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 3
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 3
+        lifecycle:
+          preStop:
+            exec:
+              command: ["/bin/sh", "-c", "sleep 2"]          
+      terminationGracePeriodSeconds: 300
+      tolerations:
+      - effect: NoExecute
+        key: node.kubernetes.io/not-ready
+        operator: Exists
+        tolerationSeconds: 300
+      - effect: NoExecute
+        key: node.kubernetes.io/unreachable
+        operator: Exists
+        tolerationSeconds: 300

@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: demo-app-svc
+  namespace: eks-work
+spec:
+  type: LoadBalancer
+  ports:
+  - name: was 
+    port: 8080
+    protocol: TCP
+    targetPort: app-port 
+  selector:
+    app: demo-app
+    version: "{{ .Values.version }}"
