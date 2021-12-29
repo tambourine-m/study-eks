@@ -17,6 +17,7 @@ AWS 를 이용한 EKS workshop 입니다.
 - Application 배포
 - 실습 내용 삭제 - CloudFormation
 
+---
 ### 1. VPC 생성
 
 AWS CloudFormation 에서 스택 생성으로 vpc 생성을 합니다. 
@@ -209,6 +210,7 @@ VPC 리소스 확인
 
 ![aws-vpc01](./img/aws-vpc01.png)
 
+---
 ### 2. EKS Workstation 생성
 
 EKS Cluster 를 구성 및 배포를 위해 aws cli, eksctl, kubectl, java 등을 설치한 EC2 를 생성합니다. 
@@ -345,7 +347,7 @@ Default output format [None]:
 ```
 
 
-
+---
 ### 3. EKS Cluster 생성
 
 eksctl, kubectl 명령, Application Build 등은 eks-workstation 에서 수행할 예정이다. 
@@ -394,7 +396,7 @@ $ kubectl config use-context eks-work
 ```
 
 
-
+---
 ### 4. Application 생성
 
 Spring initializr 사이트에서 demo-app 을 하나 받아서 간단한 Appliation 을 하나 만든다.
@@ -451,7 +453,7 @@ ENTRYPOINT ["java", \
 ```
 
 
-
+---
 ### 5. Helm 을 이용하여 Applicatoin 배포
 
 helm 설치 eks-workstation 생성시 자동으로 설치되게 되어 있습니다.
@@ -724,6 +726,8 @@ AWS Cloud 는 유료 이므로 꼭 아래 실습 삭제 항목을 참조하여 �
 
 
 
+
+---
 ### 6. 실습 삭제
 
 EKS, ECR, EC2, VPC 등 실습에 사용한 AWS Cloud 자원들을 모두 삭제 합니다. (유료이므로...)
@@ -775,3 +779,6 @@ $ aws ecr delete-repository --repository-name demo-app --force --region ap-north
 CloudFormation 에서 생성한 스택을 역순으로 삭제 합니다.
 
 ![stack-delete](./img/aws-cf06.png)
+
+
+
