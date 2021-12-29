@@ -1,6 +1,9 @@
 # EKS-WORKSHOP
 
-[TOC]
+---
+## 목차
+1. [VPC 생성](#1.-VPC-생성)
+---
 
 AWS 를 이용한 EKS workshop 입니다.
 
