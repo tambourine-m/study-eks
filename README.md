@@ -446,7 +446,8 @@ COPY ${JAR_FILE} demo-app.jar
 
 ENTRYPOINT ["java", \
  "-verbose:gc", \
- "-Xlog:gc*:stdout:time,uptime,level,tags", \
+ "-XX:+PrintGCDetails", \
+ "-XX:+PrintGCDateStamps", \
  "-Dservice.name=demo-app", \
  "-jar", \
  "/demo-app.jar"]
