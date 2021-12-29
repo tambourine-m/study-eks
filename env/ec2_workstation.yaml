@@ -70,6 +70,8 @@ Resources:
           yum install git -y
           yum install java-1.8.0-amazon-corretto-devel -y
           yum install docker -y
+          systemctl start docker
+          usermod -a -G docker ec2-user
           curl -o /tmp/get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
           chmod 700 /tmp/get_helm.sh
           /tmp/get_helm.sh

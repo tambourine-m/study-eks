@@ -286,6 +286,8 @@ Resources:
           yum install git -y
           yum install java-1.8.0-amazon-corretto-devel -y
           yum install docker -y
+          systemctl start docker
+          usermod -a -G docker ec2-user
           curl -o /tmp/get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
           chmod 700 /tmp/get_helm.sh
           /tmp/get_helm.sh
@@ -367,6 +369,22 @@ ip-10-90-30-241.ap-northeast-2.compute.internal   Ready    <none>   3m7s    v1.2
 ip-10-90-30-52.ap-northeast-2.compute.internal    Ready    <none>   3m43s   v1.21.5-eks-bc4871b
 ```
 
+Namespace 를 생성합니다. 
+
+```bash
+$ kubectl create namespace eks-work
+eks-work created
+
+$ kubectl config get-contexts
+CURRENT   NAME                                                            CLUSTER                                                         AUTHINFO                                                        NAMESPACE
+*         arn:aws:eks:ap-northeast-2:xxxxxxxxxxxxx:cluster/eks-workspace   arn:aws:eks:ap-northeast-2:xxxxxxxxxxxx:cluster/eks-workspace   arn:aws:eks:ap-northeast-2:xxxxxxxxxxxxx:cluster/eks-workspace
+
+$ kubectl config set-context eks-work --cluster arn:aws:eks:ap-northeast-2:xxxxxxxxxxxx:cluster/eks-workspace --user arn:aws:eks:ap-northeast-2:xxxxxxxxxxxxx:cluster/eks-workspace --namespace eks-work
+
+Context "eks-work" created.
+$ kubectl config use-context eks-work
+```
+
 
 
 ### 4. Application 생성
@@ -439,7 +457,7 @@ $ /tmp/get_helm.sh
 먼저 소스를 eks-workstation 에 다운로드 받는다. 
 
 ```bash
-$git clone https://github.com/tambourine-m/study-eks.git
+$ git clone https://github.com/tambourine-m/study-eks.git
 Cloning into 'study-eks'...
 remote: Enumerating objects: 69, done.
 remote: Counting objects: 100% (69/69), done.
@@ -452,8 +470,8 @@ Resolving deltas: 100% (7/7), done.
 소스를 컴파일 합니다.
 
 ```bash
-$cd study-eks
-$mvn -f pom.xml clean package -Dmaven.test.skip=true
+$ cd study-eks/demo-app
+$ mvn -f pom.xml clean package -Dmaven.test.skip=true
 [INFO] Scanning for projects...
 [INFO] 
 [INFO] -----------------------< company.diem:demo-app >------------------------
@@ -503,12 +521,14 @@ Pravate Registry URI : dkr.ecr.ap-northeast-2.amazonaws.com/demo-app
 
 ```bash
 $ aws ecr create-repository --repository-name demo-app --image-scanning-configuration scanOnPush=true --region ap-northeast-2
+
 ```
 
-ecr login 
+ecr login 시 생성한 ECR URL 를 이용합니다. 
+xxxxxxxxxxxxxx.dkr.ecr.ap-northeast-2.amazonaws.com/demo-app
 
 ```bash
-$ aws ecr get-login-password --region ap-northeast-2 --profile eks_admin | docker login --username AWS --password-stdin dkr.ecr.ap-northeast-2.amazonaws.com/demo-app
+$ aws ecr get-login-password --region ap-northeast-2 | docker login --username AWS --password-stdin xxxxxxxxxxxxxx.dkr.ecr.ap-northeast-2.amazonaws.com/demo-app
 ```
 
 docker build 를 하고 이미지를 ecr 에 push 합니다. 
@@ -519,9 +539,9 @@ $ docker images
 REPOSITORY       TAG       IMAGE ID       CREATED         SIZE
 demo-app         0.0.1     f047c8311caa   5 seconds ago   365MB
 amazoncorretto   8         78e204a7ac8b   2 weeks ago     347MB
-$ docker tag demo-app:0.0.1 dkr.ecr.ap-northeast-2.amazonaws.com/demo-app:0.0.1
+$ docker tag demo-app:0.0.1 xxxxxxxxxxxxxx.dkr.ecr.ap-northeast-2.amazonaws.com/demo-app:0.0.1
 
-$ docker push dkr.ecr.ap-northeast-2.amazonaws.com/demo-app:0.0.1
+$ docker push xxxxxxxxxxxxxx.dkr.ecr.ap-northeast-2.amazonaws.com/demo-app:0.0.1
 The push refers to repository [dkr.ecr.ap-northeast-2.amazonaws.com/demo-app]
 a1c73bb0ba18: Pushed 
 49fe839ab5bc: Pushed 
@@ -632,7 +652,7 @@ Successfully packaged chart and saved it to: /home/ec2-user/study-eks/helm/demo-
 application 배포 ecrURL 에 자신의 URL 로 변경하여 실행 합니다.
 
 ```bash
-$ helm install --name-template demo-app --set region=kr,flag=a,ecrURL=dkr.ecr.ap-northeast-2.amazonaws.com,version=0.0.1,replicas=2 /home/ec2-user/study-eks/helm/demo-app-1.0.tgz
+$ helm install --name-template demo-app --set region=kr,flag=a,ecrURL=xxxxxxxxxxxxxx.dkr.ecr.ap-northeast-2.amazonaws.com,version=0.0.1,replicas=2 /home/ec2-user/study-eks/helm/demo-app-1.0.tgz
 
 NAME: demo-app
 LAST DEPLOYED: Wed Dec 29 07:49:22 2021
@@ -679,7 +699,7 @@ AWS Console 에서 EC2 > load Balance 에서 생성된 LB 를 확인 합니다.
 
 ![LB](./img/aws-lb00.png)
 
-외부에서 API 호출이 잘 되는지 확인 합니다. 
+외부에서 API 호출이 잘 되는지 확인 합니다. EXTERNAL-IP 를 참조합니다.
 
 ```
 $ curl -s http://adf01da4abf944fa9b493fa497664a2e-1776881545.ap-northeast-2.elb.amazonaws.com:8080/
@@ -688,7 +708,15 @@ $ curl -s http://adf01da4abf944fa9b493fa497664a2e-1776881545.ap-northeast-2.elb.
 
 
 
-### 실습 삭제
+AWS Cloud 를 이용하여 K8S 를 구성하고 Application 을 배포하고 정상동작 까지 확인하는 
+
+K8S 맛보기 였습니다.
+
+AWS Cloud 는 유료 이므로 꼭 아래 실습 삭제 항목을 참조하여 사용한 자원을 삭제 해주시기 바랍니다. 
+
+
+
+### 6. 실습 삭제
 
 EKS, ECR, EC2, VPC 등 실습에 사용한 AWS Cloud 자원들을 모두 삭제 합니다. (유료이므로...)
 
@@ -705,12 +733,33 @@ eks-workstation 에서 ecr 의 이미지를 삭제 합니다.
 
 ```bash
 $ aws ecr batch-delete-image --repository-name demo-app --image-ids imageTag=0.0.1 --region ap-northeast-2
+
+{
+    "failures": [], 
+    "imageIds": [
+        {
+            "imageTag": "0.0.1", 
+            "imageDigest": "sha256:1f90d31b71ff9249aac7676a3093d3ec8c619024556dcca2c40572e91cbc2623"
+        }
+    ]
+}
 ```
 
 repository 도 삭제 합니다.
 
 ```bash
 $ aws ecr delete-repository --repository-name demo-app --force --region ap-northeast-2
+
+{
+    "repository": {
+        "repositoryUri": "xxxxxxxxxx.dkr.ecr.ap-northeast-2.amazonaws.com/demo-app", 
+        "registryId": "xxxxxxxxxx", 
+        "imageTagMutability": "MUTABLE", 
+        "repositoryArn": "arn:aws:ecr:ap-northeast-2:xxxxxxxxxx:repository/demo-app", 
+        "repositoryName": "demo-app", 
+        "createdAt": 1640726545.0
+    }
+}
 ```
 
 
