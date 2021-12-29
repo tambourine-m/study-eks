@@ -1,8 +1,13 @@
 # EKS-WORKSHOP
 
----
+
 ## 목차
 1. [VPC 생성](#1.-VPC-생성)
+2. [EKS Workstation 생성](#2.-EKS-Workstation-생성)
+3. [EKS Cluster 생성](#3.-EKS-Cluster-생성)
+4. [Application 생성](#4.-Application-생성)
+5. [Helm 을 이용하여 Application 배포](#5.-Helm-을-이용하여-Application-배포)
+6. [실습 삭제](#6.-실습-삭제)
 ---
 
 AWS 를 이용한 EKS workshop 입니다.
