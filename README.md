@@ -210,6 +210,8 @@ VPC 리소스 확인
 
 ![aws-vpc01](./img/aws-vpc01.png)
 
+
+
 ---
 ### 2. EKS Workstation 생성
 
@@ -332,6 +334,8 @@ amazon linux 2, SecurityGroup, 그리고 jdk 8, git, kubectl, eksctl 를 설치�
 
 ![eks-workstation](./img/aws-ec200.png)
 
+![ec2](./img/aws-ec202.png)
+
 생성이 끝나면 기술한 keypair 를 이용하여 eks-workstation 에 접속하여, git, eksctl, kubectl, java 등 version 을 확인 합니다. 
 
 ![EC2](./img/aws-ec201.png)
@@ -369,6 +373,12 @@ eks-workstation 에서 명령을 내리면 위 처럼 진행 상태가 보입니
 ![eks-command](./img/aws-eksctl00.png)
 
 CloudFormation 에서도 위 그림처럼 생성과정을 확인 할 수 있습니다.
+
+간혹 node 가 t2.small 로 생성 안 될때가 있는데, 이런 경우 그냥 node 생성되는 스택과, cluster 생성하는 스택을 삭제 후에 다시 
+
+cluster 생성 명렁을 수행 하시기 바랍니다. 귀찮으시면 cluster 생성 명령에서 --node-type 부분에 type 을 올려 주시면 됩니다. 
+
+
 
 모든 리소스 생성이 끝나면 kubectl 로 node 상태를 확인 합니다. 
 
@@ -530,16 +540,35 @@ Pravate Registry URI : dkr.ecr.ap-northeast-2.amazonaws.com/demo-app
 
 또는 aws cli 로 ECR 생성 합니다. 
 
+ecr login 시 ECR URL 를 이용합니다. 
+xxxxxxxxxxxxxx.dkr.ecr.[region].amazonaws.com
+
+```bash
+$ aws ecr get-login-password --region ap-northeast-2 | docker login --username AWS --password-stdin xxxxxxxxxxxxxx.dkr.ecr.ap-northeast-2.amazonaws.com
+
+Login Succeeded
+```
+
 ```bash
 $ aws ecr create-repository --repository-name demo-app --image-scanning-configuration scanOnPush=true --region ap-northeast-2
 
-```
+{
+    "repository": {
+        "repositoryUri": "xxxxxxxxxxxxxxxxx.dkr.ecr.ap-northeast-2.amazonaws.com/demo-app", 
+        "imageScanningConfiguration": {
+            "scanOnPush": true
+        }, 
+        "encryptionConfiguration": {
+            "encryptionType": "AES256"
+        }, 
+        "registryId": "xxxxxxxxxxxxxxxxx", 
+        "imageTagMutability": "MUTABLE", 
+        "repositoryArn": "arn:aws:ecr:ap-northeast-2:xxxxxxxxxxxxxxxxx:repository/demo-app", 
+        "repositoryName": "demo-app", 
+        "createdAt": 1640928318.0
+    }
+}
 
-ecr login 시 생성한 ECR URL 를 이용합니다. 
-xxxxxxxxxxxxxx.dkr.ecr.ap-northeast-2.amazonaws.com/demo-app
-
-```bash
-$ aws ecr get-login-password --region ap-northeast-2 | docker login --username AWS --password-stdin xxxxxxxxxxxxxx.dkr.ecr.ap-northeast-2.amazonaws.com/demo-app
 ```
 
 docker build 를 하고 이미지를 ecr 에 push 합니다. 
