@@ -13,7 +13,7 @@
 AWS 를 이용한 EKS workshop 입니다.
 
 - AWS CloudFormation 으로 VPC, EKS Workstation 생성
-- EKS Workstation 에서 eksctl, kubectl 명령으로 EKS Cluster 구축 및 nginX 배포
+- EKS Workstation 에서 eksctl, kubectl 명령으로 EKS Cluster 구축
 - Application 배포
 - 실습 내용 삭제 - CloudFormation
 
